@@ -1,123 +1,115 @@
-#Te rzeczy możesz zmieniać, aby uzyskiwać różne układy :)
+def display_board(board):
+    blankBoard="""
+___________________
+|     |     |     |
+|  7  |  8  |  9  |
+|     |     |     |
+|-----------------|
+|     |     |     |
+|  4  |  5  |  6  |
+|     |     |     |
+|-----------------|
+|     |     |     |
+|  1  |  2  |  3  |
+|     |     |     |
+|-----------------|
+"""
 
-Rzm = 800 #rozmiar okna: Rzm x Rzm (domyslnie 800x800)
-s = 40 #rozmiar planszy: s x s, Rzm musi byc podzielne przez s (inaczej moze byc krzywo albo nie pokazywac czegos albo cos)
-Seed = "Zwykły Seed" #seed do losowania - liczba albo string
-Kratki = 800 #ile kratek bedzie poczatkowo "zywych" - musi byc mniej, niz s^2 (inaczej pokaze ValueError)
-czas = 50 #ile milisekund czekac do zrobienia nowej generacji
-#Uwaga - podany czas to czas po akualizacji i narysowniu kolejnej generacji - wiec nalezy uwzglednic, ze realny czas zawsze bedzie (czasami duzo) wiekszy
-Pattern = "23/3" #Przed ukośnikiem umieszcza się ilości żywych sąsiadów, aby komórka nie umarła, a po ukośniku ilość żywych sąsiadów, aby martwa komórka ożyła
-#Domyślny pattern oryginalnej "Gry w Życie" wg reguł Conwaya to "23/3"
+    for i in range(1,10):
+        if (board[i] == 'O' or board[i] == 'X'):
+            blankBoard = blankBoard.replace(str(i), board[i])
+        else:
+            blankBoard = blankBoard.replace(str(i), ' ')
+    print(blankBoard)
 
+def player_input():
+    player1 = input("Please pick a marker 'X' or 'O' ")
+    while True:
+        if player1.upper() == 'X':
+            player2='O'
+            print("You've choosen " + player1 + ". Player 2 will be " + player2)
+            return player1.upper(),player2
+        elif player1.upper() == 'O':
+            player2='X'
+            print("You've choosen " + player1 + ". Player 2 will be " + player2)
+            return player1.upper(),player2
+        else:
+            player1 = input("Please pick a marker 'X' or 'O' ")
 
+def place_marker(board, marker, position):
+    board[position] = marker
+    return board
 
-#Nizej faktyczny kod
+def space_check(board, position):
+    return board[position] == '#'
 
+def full_board_check(board):
+    return len([x for x in board if x == '#']) == 1
 
-import tkinter as tk
-import random as rnd
+def win_check(board, mark):
+    if board[1] == board[2] == board[3] == mark:
+        return True
+    if board[4] == board[5] == board[6] == mark:
+        return True
+    if board[7] == board[8] == board[9] == mark:
+        return True
+    if board[1] == board[4] == board[7] == mark:
+        return True
+    if board[2] == board[5] == board[8] == mark:
+        return True
+    if board[3] == board[6] == board[9] == mark:
+        return True
+    if board[1] == board[5] == board[9] == mark:
+        return True
+    if board[3] == board[5] == board[7] == mark:
+        return True
+    return False
 
+def player_choice(board):
+    choice = input("Please select an empty space between 1 and 9 : ")
+    while not space_check(board, int(choice)):
+        choice = input("This space isn't free. Please choose between 1 and 9 : ")
+    return choice
 
-#Klasa okna:
-class Application:
-    def __init__(self, rozmiar):
-        self.Arr = [ [False for x in range(s)] for y in range(s) ] #Tablica o wymiarach s x s, poczatkowo falsz (martwa)
+def replay():
+    playAgain = input("Do you want to play again (y/n) ? ")
+    if playAgain.lower() == 'y':
+        return True
+    if playAgain.lower() == 'n':
+        return False
 
-        self.window = tk.Tk()
-        self.window.resizable(width = False, height = False)
-        self.window.geometry(rozmiar)
-        self.window.title("Game of Life")
-
-        self.canvas = tk.Canvas(self.window, width = Rzm, height = Rzm)
-        self.canvas.pack()
-
-        self.createArray()
-
-        #Tutaj sa ladne sobie kwadraty ktore beda sobie malowane
-        self.Rct = [ [self.canvas.create_rectangle(x*krSz, y*krSz, krSz*(x+1), krSz*(y+1), fill="white") for x in range(s)] for y in range(s) ]
-
-        self.updated()
-
-        self.window.mainloop()
-
-    #Funckja do uzupelnienia tablicy
-    def createArray(self):
-        #Wybiera *Kratki* liczb od 0 do s*s i odpowiednie miejsca w tablicy daje tam prawde (zywa)
-        for z in rnd.sample(range(s*s), Kratki):
-            self.Arr[z%s][z//s] = True
-
-        #vvv tutaj byly customowe figury
-        #self.Arr[1][0] = True
-        #self.Arr[2][1] = True
-        #self.Arr[2][2] = True
-        #self.Arr[1][2] = True
-        #self.Arr[0][2] = True
-
-
-    #Dla kratki o koord. x, y oblicza, ile jest zywych dookola niej
-    def liczObok(self, x, y):
-        #Mniejsze i wieksze pola - przejscia, jezeli wychodza poza granice: (ifFalse, ifTrue)[condition]
-        xm = ( x-1, s-1 )[ (x-1) == -1 ]
-        xw = ( x+1, 0   )[ (x+1) ==  s ]
-        ym = ( y-1, s-1 )[ (y-1) == -1 ]
-        yw = ( y+1, 0   )[ (y+1) ==  s ]
-        #Zwrocenie liczby pol
-        wynik  = int(self.Arr[xm][ym]) + int(self.Arr[x][ym]) + int(self.Arr[xw][ym])
-        wynik += int(self.Arr[xm][y])  +          0           + int(self.Arr[xw][y])
-        wynik += int(self.Arr[xm][yw]) + int(self.Arr[x][yw]) + int(self.Arr[xw][yw])
-
-        return wynik
-
-
-    #Funkcja update
-    def updated(self):
-
-        #Rysowanie
-        for x in range(s):
-            for y in range(s):
-                if self.Arr[x][y]:
-                    self.canvas.itemconfig(self.Rct[x][y], fill="black") #Jeżeli jest żywe, robi czarne
-                else:
-                    self.canvas.itemconfig(self.Rct[x][y], fill="white") #A jak nie, to bialy
-
-
-        #Tymczasowa tablica zawierajaca odswiezone stany
-        OdswArr = [ [False for x in range(s)] for y in range(s) ]
-
-        #Uzupelnienie tymczasowej tablicy nowa warstwa
-        for x in range(s):
-            for y in range(s):
-                sasiedzi = self.liczObok(x, y)
-
-                if self.Arr[x][y]:              #Pozostawanie przy żywych - jezeli licba sasiadow jest w "stay"
-                    if sasiedzi in stay:
-                        OdswArr[x][y] = True
-                else:                           #Jeżeli nie jesteś żywy, ale liczba sasiadow jest w "born" - ożyj
-                    if sasiedzi in born:
-                        OdswArr[x][y] = True
-
-        #Podmiana tablicy
-        self.Arr = OdswArr.copy()
-
-        #Odpalenie ponownie po *podanej ilosci* ms
-        self.window.after(czas, self.updated)
-
-
-
-#Aktualne dzialanie programu - koniec definicji
-
-
-krSz = Rzm/s #Wymiar jednej kratki - zeby bylo prosciej pisac
-
-rnd.seed(Seed)
-
-stTab, bnTab = Pattern.split("/") #Dzielenie patternu na 2 czesci
-#Zmienienie tych czesci na liczby
-stay = [int(x) for x in stTab] #To jest ile ma być obok, aby przeżyć
-born = [int(x) for x in bnTab] #To jest ile ma być obok, aby ożyć
-
-#String rozmiaru okna
-rozmiar = str(Rzm) + "x" + str(Rzm)
-
-#Tworzenie obiektu aplikacji
-apl = Application(rozmiar)
+if __name__ == "__main__":
+    print('Welcome to Tic Tac Toe!')
+    i = 1
+    # Choose your side
+    players=player_input()
+    # Empty board init
+    board = ['#'] * 10
+    while True:
+        # Set the game up here
+        game_on=full_board_check(board)
+        while not game_on:
+            # Player to choose where to put the mark
+            position = player_choice(board)
+            # Who's playin ?
+            if i % 2 == 0:
+                marker = players[1]
+            else:
+                marker = players[0]
+            # Play !
+            place_marker(board, marker, int(position))
+            # Check the board
+            display_board(board)
+            i += 1
+            if win_check(board, marker):
+                print("You won !")
+                break
+            game_on=full_board_check(board)
+        if not replay():
+            break
+        else:
+            i = 1
+            # Choose your side
+            players=player_input()
+            # Empty board init
+            board = ['#'] * 10
